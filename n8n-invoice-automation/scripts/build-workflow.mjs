@@ -1,12 +1,16 @@
-// Generates workflow/usepdfmaker-invoice-to-pdf.json from the Code-node sources in workflow/src/.
-// Usage: node scripts/build-workflow.mjs   (Node 18+, no dependencies)
+// Regenerates workflow/usepdfmaker-invoice-to-pdf.json and samples/invoice-sample.html from workflow/src/.
+// Usage:
+//   node scripts/build-workflow.mjs           write both files
+//   node scripts/build-workflow.mjs --check   fail if either file differs from its sources (no changes written)
+// Node 18+, no dependencies.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { composeCodeNode, runCodeNode } from './lib/code-nodes.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const readSrc = (name) => readFileSync(join(root, 'workflow', 'src', name), 'utf8');
+const checkOnly = process.argv.includes('--check');
 
 const workflow = {
   name: 'UsePDFMaker - Invoice HTML to PDF (example)',
@@ -20,7 +24,7 @@ const workflow = {
       position: [0, 300],
     },
     {
-      parameters: { jsCode: readSrc('new-invoice-data.js') },
+      parameters: { jsCode: composeCodeNode('new-invoice-data.js') },
       id: '6f1c0a10-0000-4000-8000-000000000002',
       name: 'New Invoice Data',
       type: 'n8n-nodes-base.code',
@@ -28,7 +32,7 @@ const workflow = {
       position: [240, 300],
     },
     {
-      parameters: { jsCode: readSrc('build-invoice-html.js') },
+      parameters: { jsCode: composeCodeNode('build-invoice-html.js') },
       id: '6f1c0a10-0000-4000-8000-000000000003',
       name: 'Build Invoice HTML',
       type: 'n8n-nodes-base.code',
@@ -54,6 +58,14 @@ const workflow = {
         },
       },
     },
+    {
+      parameters: { jsCode: composeCodeNode('name-pdf-file.js') },
+      id: '6f1c0a10-0000-4000-8000-000000000005',
+      name: 'Name PDF File',
+      type: 'n8n-nodes-base.code',
+      typeVersion: 2,
+      position: [960, 300],
+    },
   ],
   connections: {
     'Manual Trigger': {
@@ -65,6 +77,9 @@ const workflow = {
     'Build Invoice HTML': {
       main: [[{ node: 'UsePDFMaker', type: 'main', index: 0 }]],
     },
+    UsePDFMaker: {
+      main: [[{ node: 'Name PDF File', type: 'main', index: 0 }]],
+    },
   },
   active: false,
   settings: { executionOrder: 'v1' },
@@ -72,10 +87,40 @@ const workflow = {
   meta: {
     templateCredsSetupCompleted: false,
     description:
-      'Fictional invoice data -> HTML template -> UsePDFMaker HTML-to-PDF -> PDF binary output (field "data").',
+      'Fictional sample invoice data -> validation and totals -> HTML template -> UsePDFMaker HTML-to-PDF -> PDF named after the invoice number (binary field "data").',
   },
 };
 
-const outPath = join(root, 'workflow', 'usepdfmaker-invoice-to-pdf.json');
-writeFileSync(outPath, JSON.stringify(workflow, null, 2) + '\n', 'utf8');
-console.log(`Wrote ${outPath}`);
+// Renders the sample by running the same two Code nodes that the Manual Trigger runs.
+async function renderSampleHtml() {
+  const newItems = await runCodeNode(composeCodeNode('new-invoice-data.js'), { input: [{ json: {} }] });
+  const buildItems = await runCodeNode(composeCodeNode('build-invoice-html.js'), {
+    input: newItems,
+    nodeOutputs: { 'New Invoice Data': newItems },
+  });
+  return buildItems[0].json.invoiceHtml + '\n';
+}
+
+const outputs = {
+  [join(root, 'workflow', 'usepdfmaker-invoice-to-pdf.json')]: JSON.stringify(workflow, null, 2) + '\n',
+  [join(root, 'samples', 'invoice-sample.html')]: await renderSampleHtml(),
+};
+
+if (checkOnly) {
+  let stale = false;
+  for (const [path, expected] of Object.entries(outputs)) {
+    const actual = readFileSync(path, 'utf8');
+    if (actual !== expected) {
+      stale = true;
+      console.error(`STALE: ${path} does not match its sources. Run: node scripts/build-workflow.mjs`);
+    } else {
+      console.log(`OK: ${path}`);
+    }
+  }
+  process.exit(stale ? 1 : 0);
+}
+
+for (const [path, content] of Object.entries(outputs)) {
+  writeFileSync(path, content, 'utf8');
+  console.log(`Wrote ${path}`);
+}

@@ -1,45 +1,31 @@
-// Step 2 of the example: build the HTML invoice from the incoming invoice data.
+// Step 2 of the example: validate the invoice data, calculate the totals, and build the HTML invoice.
+// Invalid data throws an "Invoice validation failed" error that names each problem.
 // Output field `invoiceHtml` is what the UsePDFMaker node converts to PDF.
 
-const inv = $input.first().json;
+const esc = escapeHtml;
+const input = $input.first().json;
+const invoice = buildInvoiceModel(validateInvoice(input));
+const isSample = input.isSample === true;
 
-const esc = (value) =>
-  String(value ?? '').replace(/[&<>"']/g, (ch) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[ch]);
-
-const money = (amount) => `${inv.currency} ${Number(amount).toFixed(2)}`;
-
-const lines = inv.items.map((item) => ({
-  ...item,
-  amount: item.quantity * item.unitPrice,
-}));
-
-const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
-const tax = subtotal * inv.taxRate;
-const total = subtotal + tax;
-
-const rows = lines
+const rows = invoice.lines
   .map(
     (line) => `
       <tr>
         <td>${esc(line.description)}</td>
         <td class="num">${esc(line.quantity)}</td>
-        <td class="num">${money(line.unitPrice)}</td>
-        <td class="num">${money(line.amount)}</td>
+        <td class="num">${esc(line.unitPrice)}</td>
+        <td class="num">${esc(line.amount)}</td>
       </tr>`,
   )
   .join('');
+
+const sampleNote = isSample ? 'SAMPLE INVOICE with fictional data. ' : '';
 
 const invoiceHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Invoice ${esc(inv.invoiceNumber)}</title>
+  <title>Invoice ${esc(invoice.invoiceNumber)}${isSample ? ' (sample)' : ''}</title>
   <style>
     @page { size: A4; margin: 18mm; }
     body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 13px; }
@@ -61,26 +47,26 @@ const invoiceHtml = `<!DOCTYPE html>
 </head>
 <body>
   <header>
-    <div><h1>INVOICE</h1><div>${esc(inv.seller.name)}</div></div>
+    <div><h1>INVOICE</h1><div>${esc(invoice.seller.name)}</div></div>
     <div class="meta">
-      <div><strong>Invoice #:</strong> ${esc(inv.invoiceNumber)}</div>
-      <div><strong>Issue date:</strong> ${esc(inv.issueDate)}</div>
-      <div><strong>Due date:</strong> ${esc(inv.dueDate)}</div>
+      <div><strong>Invoice #:</strong> ${esc(invoice.invoiceNumber)}</div>
+      <div><strong>Issue date:</strong> ${esc(invoice.issueDate)}</div>
+      <div><strong>Due date:</strong> ${esc(invoice.dueDate)}</div>
     </div>
   </header>
 
   <section class="parties">
     <div>
       <div class="label">From</div>
-      <div>${esc(inv.seller.name)}</div>
-      <div>${esc(inv.seller.address)}</div>
-      <div>${esc(inv.seller.email)}</div>
+      <div>${esc(invoice.seller.name)}</div>
+      <div>${esc(invoice.seller.address)}</div>
+      <div>${esc(invoice.seller.email)}</div>
     </div>
     <div>
       <div class="label">Bill to</div>
-      <div>${esc(inv.customer.name)}</div>
-      <div>${esc(inv.customer.address)}</div>
-      <div>${esc(inv.customer.email)}</div>
+      <div>${esc(invoice.customer.name)}</div>
+      <div>${esc(invoice.customer.address)}</div>
+      <div>${esc(invoice.customer.email)}</div>
     </div>
   </section>
 
@@ -98,22 +84,26 @@ const invoiceHtml = `<!DOCTYPE html>
   </table>
 
   <div class="totals">
-    <div><span>Subtotal</span><span>${money(subtotal)}</span></div>
-    <div><span>Tax (${(inv.taxRate * 100).toFixed(0)}%)</span><span>${money(tax)}</span></div>
-    <div class="grand"><span>Total due</span><span>${money(total)}</span></div>
+    <div><span>Subtotal</span><span>${esc(invoice.subtotal)}</span></div>
+    <div><span>Tax (${esc(invoice.taxPercent)}%)</span><span>${esc(invoice.tax)}</span></div>
+    <div class="grand"><span>Total due</span><span>${esc(invoice.total)}</span></div>
   </div>
 
-  <footer>Sample invoice generated with fictional data. Payment terms: due within 30 days.</footer>
+  <footer>${esc(sampleNote)}${esc(invoice.paymentTerms)}</footer>
 </body>
 </html>`;
 
 return [
   {
     json: {
-      invoiceNumber: inv.invoiceNumber,
-      subtotal,
-      tax,
-      total,
+      invoiceNumber: invoice.invoiceNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      currency: invoice.currency,
+      subtotal: invoice.subtotal,
+      tax: invoice.tax,
+      total: invoice.total,
+      isSample,
       invoiceHtml,
     },
   },
