@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Order ORD-2026-00317</title>
+  <style>
+    @page { size: A4; margin: 18mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 13px; }
+    header { border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+    .info { display: flex; justify-content: space-between; margin: 20px 0; line-height: 1.6; }
+    .info div { width: 48%; }
+    .label { font-weight: bold; text-transform: uppercase; font-size: 11px; color: #666; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+    th { background: #f3f3f3; font-size: 12px; text-transform: uppercase; }
+    .num { text-align: right; white-space: nowrap; }
+    .totals { margin-top: 16px; margin-left: auto; width: 45%; }
+    .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+    .totals .grand { font-weight: bold; font-size: 15px; border-top: 2px solid #1a1a1a; margin-top: 4px; padding-top: 8px; }
+    footer { margin-top: 40px; font-size: 11px; color: #666; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ORDER CONFIRMATION</h1>
+    <div>Order #: ORD-2026-00317 &nbsp;|&nbsp; Date: 2026-10-28</div>
+  </header>
+
+  <section class="info">
+    <div>
+      <div class="label">Customer</div>
+      <div>Sample Shopper</div>
+      <div>shopper@sample-mail.example</div>
+      <div>5 Example Lane, Testville, TS 12345</div>
+    </div>
+    <div>
+      <div class="label">Delivery</div>
+      <div>Standard shipping, 3-5 business days</div>
+      <div class="label" style="margin-top:12px">Payment</div>
+      <div>Card (sample data, masked)</div>
+    </div>
+  </section>
+
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Item</th>
+        <th class="num">Qty</th>
+        <th class="num">Unit price</th>
+        <th class="num">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>MUG-BLU-01</td>
+        <td>Ceramic mug, blue (350 ml)</td>
+        <td class="num">2</td>
+        <td class="num">USD 14.00</td>
+        <td class="num">USD 28.00</td>
+      </tr>
+      <tr>
+        <td>TEE-M-BLK</td>
+        <td>Cotton T-shirt, black, size M</td>
+        <td class="num">1</td>
+        <td class="num">USD 22.50</td>
+        <td class="num">USD 22.50</td>
+      </tr>
+      <tr>
+        <td>STK-PACK-5</td>
+        <td>Sticker pack (5 designs)</td>
+        <td class="num">3</td>
+        <td class="num">USD 4.00</td>
+        <td class="num">USD 12.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Subtotal</span><span>USD 62.50</span></div>
+    <div><span>Shipping</span><span>USD 5.90</span></div>
+    <div><span>Tax (8%)</span><span>USD 5.00</span></div>
+    <div class="grand"><span>Order total</span><span>USD 73.40</span></div>
+  </div>
+
+  <footer>Sample order generated with fictional data. Keep this document for your records.</footer>
+</body>
+</html>

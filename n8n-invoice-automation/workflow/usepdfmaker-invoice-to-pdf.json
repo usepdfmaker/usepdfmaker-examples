@@ -1,0 +1,107 @@
+{
+  "name": "UsePDFMaker - Invoice HTML to PDF (example)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6f1c0a10-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 1 of the example: \"new invoice data\".\n// All values below are FICTIONAL. In a real workflow, replace this Code node with\n// a Webhook, Google Sheets, Airtable, CRM or database node that outputs the same fields.\n\nconst items = [\n  { description: 'Website design - homepage', quantity: 1, unitPrice: 1200 },\n  { description: 'Monthly hosting (March)', quantity: 3, unitPrice: 49.5 },\n  { description: 'SEO audit', quantity: 1, unitPrice: 350 },\n];\n\nreturn [\n  {\n    json: {\n      invoiceNumber: 'INV-2026-0001',\n      issueDate: '2026-10-28',\n      dueDate: '2026-11-27',\n      currency: 'USD',\n      taxRate: 0.2,\n      seller: {\n        name: 'Example Studio Ltd',\n        address: '1 Sample Street, Springfield',\n        email: 'billing@example.com',\n      },\n      customer: {\n        name: 'Sample Client Co.',\n        address: '42 Demo Avenue, Testville',\n        email: 'accounts@sample-client.example',\n      },\n      items,\n    },\n  },\n];\n"
+      },
+      "id": "6f1c0a10-0000-4000-8000-000000000002",
+      "name": "New Invoice Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2 of the example: build the HTML invoice from the incoming invoice data.\n// Output field `invoiceHtml` is what the UsePDFMaker node converts to PDF.\n\nconst inv = $input.first().json;\n\nconst esc = (value) =>\n  String(value ?? '').replace(/[&<>\"']/g, (ch) => ({\n    '&': '&amp;',\n    '<': '&lt;',\n    '>': '&gt;',\n    '\"': '&quot;',\n    \"'\": '&#39;',\n  })[ch]);\n\nconst money = (amount) => `${inv.currency} ${Number(amount).toFixed(2)}`;\n\nconst lines = inv.items.map((item) => ({\n  ...item,\n  amount: item.quantity * item.unitPrice,\n}));\n\nconst subtotal = lines.reduce((sum, line) => sum + line.amount, 0);\nconst tax = subtotal * inv.taxRate;\nconst total = subtotal + tax;\n\nconst rows = lines\n  .map(\n    (line) => `\n      <tr>\n        <td>${esc(line.description)}</td>\n        <td class=\"num\">${esc(line.quantity)}</td>\n        <td class=\"num\">${money(line.unitPrice)}</td>\n        <td class=\"num\">${money(line.amount)}</td>\n      </tr>`,\n  )\n  .join('');\n\nconst invoiceHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Invoice ${esc(inv.invoiceNumber)}</title>\n  <style>\n    @page { size: A4; margin: 18mm; }\n    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 13px; }\n    header { display: flex; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }\n    h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }\n    .meta { text-align: right; line-height: 1.6; }\n    .parties { display: flex; justify-content: space-between; margin: 24px 0; }\n    .parties div { width: 48%; line-height: 1.5; }\n    .label { font-weight: bold; text-transform: uppercase; font-size: 11px; color: #666; margin-bottom: 4px; }\n    table { width: 100%; border-collapse: collapse; }\n    th, td { padding: 8px 6px; border-bottom: 1px solid #ddd; text-align: left; }\n    th { background: #f3f3f3; font-size: 12px; text-transform: uppercase; }\n    .num { text-align: right; white-space: nowrap; }\n    .totals { margin-top: 16px; margin-left: auto; width: 45%; }\n    .totals div { display: flex; justify-content: space-between; padding: 4px 0; }\n    .totals .grand { font-weight: bold; font-size: 15px; border-top: 2px solid #1a1a1a; margin-top: 4px; padding-top: 8px; }\n    footer { margin-top: 40px; font-size: 11px; color: #666; }\n  </style>\n</head>\n<body>\n  <header>\n    <div><h1>INVOICE</h1><div>${esc(inv.seller.name)}</div></div>\n    <div class=\"meta\">\n      <div><strong>Invoice #:</strong> ${esc(inv.invoiceNumber)}</div>\n      <div><strong>Issue date:</strong> ${esc(inv.issueDate)}</div>\n      <div><strong>Due date:</strong> ${esc(inv.dueDate)}</div>\n    </div>\n  </header>\n\n  <section class=\"parties\">\n    <div>\n      <div class=\"label\">From</div>\n      <div>${esc(inv.seller.name)}</div>\n      <div>${esc(inv.seller.address)}</div>\n      <div>${esc(inv.seller.email)}</div>\n    </div>\n    <div>\n      <div class=\"label\">Bill to</div>\n      <div>${esc(inv.customer.name)}</div>\n      <div>${esc(inv.customer.address)}</div>\n      <div>${esc(inv.customer.email)}</div>\n    </div>\n  </section>\n\n  <table>\n    <thead>\n      <tr>\n        <th>Description</th>\n        <th class=\"num\">Qty</th>\n        <th class=\"num\">Unit price</th>\n        <th class=\"num\">Amount</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n\n  <div class=\"totals\">\n    <div><span>Subtotal</span><span>${money(subtotal)}</span></div>\n    <div><span>Tax (${(inv.taxRate * 100).toFixed(0)}%)</span><span>${money(tax)}</span></div>\n    <div class=\"grand\"><span>Total due</span><span>${money(total)}</span></div>\n  </div>\n\n  <footer>Sample invoice generated with fictional data. Payment terms: due within 30 days.</footer>\n</body>\n</html>`;\n\nreturn [\n  {\n    json: {\n      invoiceNumber: inv.invoiceNumber,\n      subtotal,\n      tax,\n      total,\n      invoiceHtml,\n    },\n  },\n];\n"
+      },
+      "id": "6f1c0a10-0000-4000-8000-000000000003",
+      "name": "Build Invoice HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "htmlToPdf",
+        "html": "={{ $json.invoiceHtml }}",
+        "options": {}
+      },
+      "id": "6f1c0a10-0000-4000-8000-000000000004",
+      "name": "UsePDFMaker",
+      "type": "n8n-nodes-usepdfmaker.usePdfMaker",
+      "typeVersion": 1,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "usePdfMakerApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "UsePDFMaker API account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "New Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invoice HTML": {
+      "main": [
+        [
+          {
+            "node": "UsePDFMaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Fictional invoice data -> HTML template -> UsePDFMaker HTML-to-PDF -> PDF binary output (field \"data\")."
+  }
+}

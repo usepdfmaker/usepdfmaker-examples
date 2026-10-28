@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invoice INV-2026-0001</title>
+  <style>
+    @page { size: A4; margin: 18mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 13px; }
+    header { display: flex; justify-content: space-between; border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }
+    h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+    .meta { text-align: right; line-height: 1.6; }
+    .parties { display: flex; justify-content: space-between; margin: 24px 0; }
+    .parties div { width: 48%; line-height: 1.5; }
+    .label { font-weight: bold; text-transform: uppercase; font-size: 11px; color: #666; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+    th { background: #f3f3f3; font-size: 12px; text-transform: uppercase; }
+    .num { text-align: right; white-space: nowrap; }
+    .totals { margin-top: 16px; margin-left: auto; width: 45%; }
+    .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+    .totals .grand { font-weight: bold; font-size: 15px; border-top: 2px solid #1a1a1a; margin-top: 4px; padding-top: 8px; }
+    footer { margin-top: 40px; font-size: 11px; color: #666; }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>INVOICE</h1><div>Example Studio Ltd</div></div>
+    <div class="meta">
+      <div><strong>Invoice #:</strong> INV-2026-0001</div>
+      <div><strong>Issue date:</strong> 2026-10-28</div>
+      <div><strong>Due date:</strong> 2026-11-27</div>
+    </div>
+  </header>
+
+  <section class="parties">
+    <div>
+      <div class="label">From</div>
+      <div>Example Studio Ltd</div>
+      <div>1 Sample Street, Springfield</div>
+      <div>billing@example.com</div>
+    </div>
+    <div>
+      <div class="label">Bill to</div>
+      <div>Sample Client Co.</div>
+      <div>42 Demo Avenue, Testville</div>
+      <div>accounts@sample-client.example</div>
+    </div>
+  </section>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="num">Qty</th>
+        <th class="num">Unit price</th>
+        <th class="num">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Website design - homepage</td>
+        <td class="num">1</td>
+        <td class="num">USD 1200.00</td>
+        <td class="num">USD 1200.00</td>
+      </tr>
+      <tr>
+        <td>Monthly hosting (March)</td>
+        <td class="num">3</td>
+        <td class="num">USD 49.50</td>
+        <td class="num">USD 148.50</td>
+      </tr>
+      <tr>
+        <td>SEO audit</td>
+        <td class="num">1</td>
+        <td class="num">USD 350.00</td>
+        <td class="num">USD 350.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Subtotal</span><span>USD 1698.50</span></div>
+    <div><span>Tax (20%)</span><span>USD 339.70</span></div>
+    <div class="grand"><span>Total due</span><span>USD 2038.20</span></div>
+  </div>
+
+  <footer>Sample invoice generated with fictional data. Payment terms: due within 30 days.</footer>
+</body>
+</html>

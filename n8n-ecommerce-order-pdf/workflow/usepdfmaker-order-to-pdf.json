@@ -1,0 +1,107 @@
+{
+  "name": "UsePDFMaker - E-commerce order HTML to PDF (example)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8b3e1c30-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 1 of the example: \"new order data\".\n// All values below are FICTIONAL. In a real workflow, replace this Code node with\n// a Shopify, WooCommerce, Stripe or webhook trigger that outputs the same fields.\n\nconst items = [\n  { sku: 'MUG-BLU-01', description: 'Ceramic mug, blue (350 ml)', quantity: 2, unitPrice: 14.0 },\n  { sku: 'TEE-M-BLK', description: 'Cotton T-shirt, black, size M', quantity: 1, unitPrice: 22.5 },\n  { sku: 'STK-PACK-5', description: 'Sticker pack (5 designs)', quantity: 3, unitPrice: 4.0 },\n];\n\nreturn [\n  {\n    json: {\n      orderNumber: 'ORD-2026-00317',\n      orderDate: '2026-10-28',\n      currency: 'USD',\n      taxRate: 0.08,\n      shippingFee: 5.9,\n      paymentMethod: 'Card (sample data, masked)',\n      shippingMethod: 'Standard shipping, 3-5 business days',\n      customer: {\n        name: 'Sample Shopper',\n        email: 'shopper@sample-mail.example',\n        address: '5 Example Lane, Testville, TS 12345',\n      },\n      items,\n    },\n  },\n];\n"
+      },
+      "id": "8b3e1c30-0000-4000-8000-000000000002",
+      "name": "New Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 2 of the example: build the HTML order document from the incoming order data.\n// Output field `orderHtml` is what the UsePDFMaker node converts to PDF.\n\nconst order = $input.first().json;\n\nconst esc = (value) =>\n  String(value ?? '').replace(/[&<>\"']/g, (ch) => ({\n    '&': '&amp;',\n    '<': '&lt;',\n    '>': '&gt;',\n    '\"': '&quot;',\n    \"'\": '&#39;',\n  })[ch]);\n\nconst money = (amount) => `${order.currency} ${Number(amount).toFixed(2)}`;\n\nconst lines = order.items.map((item) => ({\n  ...item,\n  amount: item.quantity * item.unitPrice,\n}));\n\nconst subtotal = lines.reduce((sum, line) => sum + line.amount, 0);\nconst tax = subtotal * order.taxRate;\nconst total = subtotal + tax + order.shippingFee;\n\nconst rows = lines\n  .map(\n    (line) => `\n      <tr>\n        <td>${esc(line.sku)}</td>\n        <td>${esc(line.description)}</td>\n        <td class=\"num\">${esc(line.quantity)}</td>\n        <td class=\"num\">${money(line.unitPrice)}</td>\n        <td class=\"num\">${money(line.amount)}</td>\n      </tr>`,\n  )\n  .join('');\n\nconst orderHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <title>Order ${esc(order.orderNumber)}</title>\n  <style>\n    @page { size: A4; margin: 18mm; }\n    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 13px; }\n    header { border-bottom: 2px solid #1a1a1a; padding-bottom: 12px; }\n    h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }\n    .info { display: flex; justify-content: space-between; margin: 20px 0; line-height: 1.6; }\n    .info div { width: 48%; }\n    .label { font-weight: bold; text-transform: uppercase; font-size: 11px; color: #666; margin-bottom: 4px; }\n    table { width: 100%; border-collapse: collapse; }\n    th, td { padding: 8px 6px; border-bottom: 1px solid #ddd; text-align: left; }\n    th { background: #f3f3f3; font-size: 12px; text-transform: uppercase; }\n    .num { text-align: right; white-space: nowrap; }\n    .totals { margin-top: 16px; margin-left: auto; width: 45%; }\n    .totals div { display: flex; justify-content: space-between; padding: 4px 0; }\n    .totals .grand { font-weight: bold; font-size: 15px; border-top: 2px solid #1a1a1a; margin-top: 4px; padding-top: 8px; }\n    footer { margin-top: 40px; font-size: 11px; color: #666; }\n  </style>\n</head>\n<body>\n  <header>\n    <h1>ORDER CONFIRMATION</h1>\n    <div>Order #: ${esc(order.orderNumber)} &nbsp;|&nbsp; Date: ${esc(order.orderDate)}</div>\n  </header>\n\n  <section class=\"info\">\n    <div>\n      <div class=\"label\">Customer</div>\n      <div>${esc(order.customer.name)}</div>\n      <div>${esc(order.customer.email)}</div>\n      <div>${esc(order.customer.address)}</div>\n    </div>\n    <div>\n      <div class=\"label\">Delivery</div>\n      <div>${esc(order.shippingMethod)}</div>\n      <div class=\"label\" style=\"margin-top:12px\">Payment</div>\n      <div>${esc(order.paymentMethod)}</div>\n    </div>\n  </section>\n\n  <table>\n    <thead>\n      <tr>\n        <th>SKU</th>\n        <th>Item</th>\n        <th class=\"num\">Qty</th>\n        <th class=\"num\">Unit price</th>\n        <th class=\"num\">Amount</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n\n  <div class=\"totals\">\n    <div><span>Subtotal</span><span>${money(subtotal)}</span></div>\n    <div><span>Shipping</span><span>${money(order.shippingFee)}</span></div>\n    <div><span>Tax (${(order.taxRate * 100).toFixed(0)}%)</span><span>${money(tax)}</span></div>\n    <div class=\"grand\"><span>Order total</span><span>${money(total)}</span></div>\n  </div>\n\n  <footer>Sample order generated with fictional data. Keep this document for your records.</footer>\n</body>\n</html>`;\n\nreturn [\n  {\n    json: {\n      orderNumber: order.orderNumber,\n      subtotal,\n      tax,\n      total,\n      orderHtml,\n    },\n  },\n];\n"
+      },
+      "id": "8b3e1c30-0000-4000-8000-000000000003",
+      "name": "Build Order HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "htmlToPdf",
+        "html": "={{ $json.orderHtml }}",
+        "options": {}
+      },
+      "id": "8b3e1c30-0000-4000-8000-000000000004",
+      "name": "UsePDFMaker",
+      "type": "n8n-nodes-usepdfmaker.usePdfMaker",
+      "typeVersion": 1,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "usePdfMakerApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "UsePDFMaker API account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "New Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Order Data": {
+      "main": [
+        [
+          {
+            "node": "Build Order HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Order HTML": {
+      "main": [
+        [
+          {
+            "node": "UsePDFMaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Fictional e-commerce order data -> HTML order document -> UsePDFMaker HTML-to-PDF -> PDF binary output (field \"data\")."
+  }
+}

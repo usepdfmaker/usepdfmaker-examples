@@ -1,0 +1,14 @@
+{
+  "name": "usepdfmaker-nodejs-html-to-pdf-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example: generate a PDF sales report from HTML with the UsePDFMaker API (no dependencies).",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/generate-report.mjs",
+    "check": "node --check src/generate-report.mjs"
+  }
+}
